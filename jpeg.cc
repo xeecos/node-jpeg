@@ -1,20 +1,28 @@
-#include <node.h>
+#include <nan.h>
+using namespace Nan;  
+using namespace v8;
 
-using v8::FunctionCallbackInfo;
-using v8::Isolate;
-using v8::Local;
-using v8::Object;
-using v8::String;
-using v8::Value;
+NAN_METHOD(encode) {  
+    
+    v8::Isolate *isolate = Isolate::GetCurrent();
+    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    uint8_t* rgbBuffer = (uint8_t*) node::Buffer::Data(info[0]->ToObject(context).ToLocalChecked());
+    unsigned int rgbBufferSize = info[1]->Uint32Value(context).ToChecked();
 
-void Method(const FunctionCallbackInfo<Value> &args)
-{
-  Isolate *isolate = args.GetIsolate();
-  args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, "world").ToLocalChecked());
+    unsigned int width = info[4]->Uint32Value(context).ToChecked();
+    unsigned int height = info[5]->Uint32Value(context).ToChecked();
+
+    uint8_t* outBuffer = (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
+    unsigned int outBufferSize = info[3]->Uint32Value(context).ToChecked();
+
+    for(unsigned int i = 0; i < rgbBufferSize; i++ ) {
+        outBuffer[i] = 5;
+    }   
+    info.GetReturnValue().Set(outBufferSize);
 }
 
-void init(Local<Object> exports)
-{
-  NODE_SET_METHOD(exports, "hello", Method);
+NAN_MODULE_INIT(Init) {  
+   Nan::Set(target, New<String>("encode").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(encode)).ToLocalChecked());
 }
-NODE_MODULE(addon, init)
+
+NODE_MODULE(addon, Init)
