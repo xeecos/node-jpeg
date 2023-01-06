@@ -1,10 +1,7 @@
-#include <nan.h>
+
 #include <stdio.h>
 #include <string.h>
 #include "libs/tjpgd.h"
-#include "libs/toojpeg.h"
-using namespace Nan;  
-using namespace v8;
 
 /* Bytes per pixel of image output */
 #define N_BPP (3 - JD_FORMAT)
@@ -73,33 +70,12 @@ int out_func (      /* Returns 1 to continue, 0 to abort */
     return 1;    /* Continue to decompress */
 }
 
-uint8_t* outBuffer;
-int idx;
-void myOutput(unsigned char oneByte) { 
-    outBuffer[idx] = oneByte;
-    idx++;
-}
-NAN_METHOD(encode) {  
-    
-    v8::Isolate *isolate = Isolate::GetCurrent();
-    v8::Local<v8::Context> context = v8::Context::New(isolate);
-    uint8_t* rgbBuffer = (uint8_t*) node::Buffer::Data(info[0]->ToObject(context).ToLocalChecked());
-    unsigned int rgbBufferSize = info[1]->Uint32Value(context).ToChecked();
 
-    unsigned int width = info[4]->Uint32Value(context).ToChecked();
-    unsigned int height = info[5]->Uint32Value(context).ToChecked();
+/*------------------------------*/
+/* Program Main                 */
+/*------------------------------*/
 
-    outBuffer = (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
-    unsigned int outBufferSize = info[3]->Uint32Value(context).ToChecked();
-    unsigned int quality = info[6]->Uint32Value(context).ToChecked();
-    idx = 0;
-    TooJpeg::writeJpeg(myOutput,rgbBuffer,width,height,true,quality);
-    info.GetReturnValue().Set(idx);
-
-    
-}
-
-int decode(int argc, char* argv[])
+int main (int argc, char* argv[])
 {
     JRESULT res;      /* Result code of TJpgDec API */
     JDEC jdec;        /* Decompression object */
@@ -142,9 +118,6 @@ int decode(int argc, char* argv[])
     free(work);             /* Discard work area */
 
     fclose(devid.fp);       /* Close the JPEG file */
-}
-NAN_MODULE_INIT(Init) {  
-   Nan::Set(target, New<String>("encode").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(encode)).ToLocalChecked());
-}
 
-NODE_MODULE(addon, Init)
+    return res;
+}
