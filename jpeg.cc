@@ -1,80 +1,138 @@
 #include <nan.h>
 #include <stdio.h>
 #include <string.h>
-#include "libs/tjpgd.h"
-#include "libs/toojpeg.h"
+#include "libs/nanojpeg.h"
+#include "libs/jpge.h"
 using namespace Nan;  
 using namespace v8;
-
+typedef enum
+{
+    PIXFORMAT_RGB888,    // 3BPP/RGB565
+    PIXFORMAT_RGB565,    // 2BPP/RGB565
+    PIXFORMAT_GRAYSCALE, // 1BPP/GRAYSCALE
+    PIXFORMAT_RAW,       // RAW
+} pixformat_t;
 /* Bytes per pixel of image output */
 #define N_BPP (3 - JD_FORMAT)
 
-
-/* Session identifier for input/output functions (name, members and usage are as user defined) */
-typedef struct {
-    FILE *fp;               /* Input stream */
-    uint8_t *fbuf;          /* Output frame buffer */
-    unsigned int wfbuf;     /* Width of the frame buffer [pix] */
-} IODEV;
-
-
-/*------------------------------*/
-/* User defined input funciton  */
-/*------------------------------*/
-
-size_t in_func (    /* Returns number of bytes read (zero on error) */
-    JDEC* jd,       /* Decompression object */
-    uint8_t* buff,  /* Pointer to the read buffer (null to remove data) */
-    size_t nbyte    /* Number of bytes to read/remove */
-)
-{
-    IODEV *dev = (IODEV*)jd->device;   /* Session identifier (5th argument of jd_prepare function) */
-
-
-    if (buff) { /* Raad data from imput stream */
-        return fread(buff, 1, nbyte, dev->fp);
-    } else {    /* Remove data from input stream */
-        return fseek(dev->fp, nbyte, SEEK_CUR) ? 0 : nbyte;
-    }
-}
-
-
-/*------------------------------*/
-/* User defined output funciton */
-/*------------------------------*/
-
-int out_func (      /* Returns 1 to continue, 0 to abort */
-    JDEC* jd,       /* Decompression object */
-    void* bitmap,   /* Bitmap data to be output */
-    JRECT* rect     /* Rectangular region of output image */
-)
-{
-    IODEV *dev = (IODEV*)jd->device;   /* Session identifier (5th argument of jd_prepare function) */
-    uint8_t *src, *dst;
-    uint16_t y, bws;
-    unsigned int bwd;
-
-
-    /* Progress indicator */
-    if (rect->left == 0) {
-        printf("\r%lu%%", (rect->top << jd->scale) * 100UL / jd->height);
-    }
-
-    /* Copy the output image rectangle to the frame buffer */
-    src = (uint8_t*)bitmap;                           /* Output bitmap */
-    dst = dev->fbuf + N_BPP * (rect->top * dev->wfbuf + rect->left);  /* Left-top of rectangle in the frame buffer */
-    bws = N_BPP * (rect->right - rect->left + 1);     /* Width of the rectangle [byte] */
-    bwd = N_BPP * dev->wfbuf;                         /* Width of the frame buffer [byte] */
-    for (y = rect->top; y <= rect->bottom; y++) {
-        memcpy(dst, src, bws);   /* Copy a line */
-        src += bws; dst += bwd;  /* Next line */
-    }
-
-    return 1;    /* Continue to decompress */
-}
-
 uint8_t* outBuffer;
+uint8_t* jpegBuffer;
+unsigned int jpegBufferSize;
 int idx;
+int jpegIndex;
+/* Session identifier for input/output functions (name, members and usage are as user defined) */
+
+/**
+ * jpge
+*/
+
+void convert_line_format(uint8_t *src, pixformat_t format, uint8_t *dst, size_t width, size_t in_channels, size_t line)
+{
+    uint8_t r = 0, g = 0, b = 0;
+    if(format==PIXFORMAT_GRAYSCALE)
+    {
+        memcpy(dst, src + line * width, width);
+    }
+    else if(format==PIXFORMAT_RGB888)
+    {
+        memcpy(dst, src + line * width * in_channels, width * in_channels);
+    }
+}
+bool convert_image(uint8_t *src, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, jpge::output_stream *dst_stream)
+{
+    int num_channels = 3;
+    jpge::subsampling_t subsampling = jpge::H2V2;
+
+    if(format == PIXFORMAT_GRAYSCALE)
+    {
+        num_channels = 1;
+        subsampling = jpge::Y_ONLY;
+    }
+
+    if (!quality)
+    {
+        quality = 1;
+    }
+    else if (quality > 100)
+    {
+        quality = 100;
+    }
+
+    jpge::params comp_params = jpge::params();
+    comp_params.m_subsampling = subsampling;
+    comp_params.m_quality = quality;
+
+    jpge::jpeg_encoder dst_image;
+
+    if (!dst_image.init(dst_stream, width, height, num_channels, comp_params))
+    {
+        return false;
+    }
+
+    uint8_t *line = (uint8_t *)malloc(width * num_channels);
+    if (!line)
+    {
+        return false;
+    }
+    for (int i = 0; i < height; i++)
+    {
+        convert_line_format(src, format, line, width, num_channels, i);
+        if (!dst_image.process_scanline(line))
+        {
+            free(line);
+            return false;
+        }
+    }
+    free(line);
+
+    if (!dst_image.process_scanline(NULL))
+    {
+        printf( "JPG image finish failed");
+        return false;
+    }
+    dst_image.deinit();
+    return true;
+}
+
+class memory_stream : public jpge::output_stream
+{
+protected:
+    uint8_t *out_buf;
+    size_t max_len, index;
+
+public:
+    memory_stream(void *pBuf, unsigned int buf_size) : out_buf(static_cast<uint8_t *>(pBuf)), max_len(buf_size), index(0) {}
+
+    virtual ~memory_stream() {}
+
+    virtual bool put_buf(const void *pBuf, int len)
+    {
+        if (!pBuf)
+        {
+            // end of image
+            return true;
+        }
+        if ((size_t)len > (max_len - index))
+        {
+            printf( "JPG output overflow: %d bytes", len - (max_len - index));
+            len = max_len - index;
+        }
+        if (len)
+        {
+            memcpy(out_buf + index, pBuf, len);
+            index += len;
+        }
+        return true;
+    }
+
+    virtual unsigned int get_size() const
+    {
+        return index;
+    }
+};
+/**
+ * toojpeg
+*/
 void myOutput(unsigned char oneByte) { 
     outBuffer[idx] = oneByte;
     idx++;
@@ -91,60 +149,39 @@ NAN_METHOD(encode) {
 
     outBuffer = (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
     unsigned int outBufferSize = info[3]->Uint32Value(context).ToChecked();
-    unsigned int quality = info[6]->Uint32Value(context).ToChecked();
+    bool isRGB = info[6]->Uint32Value(context).ToChecked();
+    unsigned int quality = info[7]->Uint32Value(context).ToChecked();
     idx = 0;
-    TooJpeg::writeJpeg(myOutput,rgbBuffer,width,height,true,quality);
-    info.GetReturnValue().Set(idx);
-
-    
+    pixformat_t format = isRGB?PIXFORMAT_RGB888:PIXFORMAT_GRAYSCALE;
+    memory_stream dst_stream(outBuffer, outBufferSize);
+    convert_image(rgbBuffer, width, height, format, quality, &dst_stream);
+    info.GetReturnValue().Set(dst_stream.get_size());
 }
 
-int decode(int argc, char* argv[])
+
+NAN_METHOD(decode)
 {
-    JRESULT res;      /* Result code of TJpgDec API */
-    JDEC jdec;        /* Decompression object */
-    void *work;       /* Pointer to the work area */
-    size_t sz_work = 3500; /* Size of work area */
-    IODEV devid;      /* Session identifier */
+    v8::Isolate *isolate = Isolate::GetCurrent();
+    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    jpegBuffer = (uint8_t*) node::Buffer::Data(info[0]->ToObject(context).ToLocalChecked());
+    unsigned int jpegBufferSize = info[1]->Uint32Value(context).ToChecked();
+    outBuffer = (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
+    bool isRGB = info[3]->Uint32Value(context).ToChecked();
 
-
-    /* Initialize input stream */
-    if (argc < 2) return -1;
-    devid.fp = fopen(argv[1], "rb");
-    if (!devid.fp) return -1;
-
-    /* Prepare to decompress */
-    work = (void*)malloc(sz_work);
-    res = jd_prepare(&jdec, in_func, work, sz_work, &devid);
-    if (res == JDR_OK) {
-        /* It is ready to dcompress and image info is available here */
-        printf("Image size is %u x %u.\n%u bytes of work ares is used.\n", jdec.width, jdec.height, sz_work - jdec.sz_pool);
-
-        /* Initialize output device */
-        devid.fbuf = (uint8_t*)malloc(N_BPP * jdec.width * jdec.height); /* Create frame buffer for output image */
-        devid.wfbuf = jdec.width;
-
-        res = jd_decomp(&jdec, out_func, 0);   /* Start to decompress with 1/1 scaling */
-        if (res == JDR_OK) {
-            /* Decompression succeeded. You have the decompressed image in the frame buffer here. */
-            printf("\rDecompression succeeded.\n");
-
-        } else {
-            printf("jd_decomp() failed (rc=%d)\n", res);
-        }
-
-        free(devid.fbuf);    /* Discard frame buffer */
-
-    } else {
-        printf("jd_prepare() failed (rc=%d)\n", res);
-    }
-
-    free(work);             /* Discard work area */
-
-    fclose(devid.fp);       /* Close the JPEG file */
+    njInit();
+    njDecode(jpegBuffer,jpegBufferSize);
+    memcpy(outBuffer, njGetImage(),njGetImageSize());
+    njDone();
 }
 NAN_MODULE_INIT(Init) {  
    Nan::Set(target, New<String>("encode").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(encode)).ToLocalChecked());
+   Nan::Set(target, New<String>("decode").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(decode)).ToLocalChecked());
 }
 
 NODE_MODULE(addon, Init)
+
+/**
+ * 
+
+
+*/
