@@ -6,7 +6,7 @@ const rgb = [];
 const width = 1920;
 const height = 1080;
 const quality = 75;
-const isRGB = false;
+const isRGB = true;
 for(let i=0;i<width;i++)
 {
     for(let j=0;j<height;j++)
@@ -14,7 +14,8 @@ for(let i=0;i<width;i++)
         rgb.push(j%0xff);
         if(isRGB)
         {
-            rgb.push(Math.floor(Math.random()*0x20));
+            // rgb.push(Math.floor(Math.random()*0x20));
+            rgb.push(i%0xff);
             rgb.push(j%0xff);
         }
         // rgb.push(Math.floor(0xff*Math.random()));

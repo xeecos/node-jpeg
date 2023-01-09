@@ -171,6 +171,7 @@ NAN_METHOD(decode)
     njInit();
     njDecode(jpegBuffer,jpegBufferSize);
     memcpy(outBuffer, njGetImage(),njGetImageSize());
+    printf("rgb:%d, len:%d\n",njIsColor(),njGetImageSize());
     njDone();
 }
 NAN_MODULE_INIT(Init) {  
