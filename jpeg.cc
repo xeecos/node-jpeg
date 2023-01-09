@@ -3,6 +3,7 @@
 #include <string.h>
 #include "libs/nanojpeg.h"
 #include "libs/jpge.h"
+#include "libs/demosaic.h"
 using namespace Nan;  
 using namespace v8;
 typedef enum
@@ -158,7 +159,6 @@ NAN_METHOD(encode) {
     info.GetReturnValue().Set(dst_stream.get_size());
 }
 
-
 NAN_METHOD(decode)
 {
     v8::Isolate *isolate = Isolate::GetCurrent();
@@ -174,9 +174,23 @@ NAN_METHOD(decode)
     printf("rgb:%d, len:%d\n",njIsColor(),njGetImageSize());
     njDone();
 }
+
+NAN_METHOD(demosaic)
+{
+    v8::Isolate *isolate = Isolate::GetCurrent();
+    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    uint8_t* rgbBuffer = (uint8_t*) node::Buffer::Data(info[0]->ToObject(context).ToLocalChecked());
+    unsigned int rgbBufferSize = info[1]->Uint32Value(context).ToChecked();
+    uint8_t* outBuffer = (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
+    unsigned int width = info[3]->Uint32Value(context).ToChecked();
+    unsigned int height = info[4]->Uint32Value(context).ToChecked();
+    bilinear(width, height, 8, BIG_ENDING, RGGB, rgbBuffer, outBuffer);
+}
+
 NAN_MODULE_INIT(Init) {  
    Nan::Set(target, New<String>("encode").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(encode)).ToLocalChecked());
    Nan::Set(target, New<String>("decode").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(decode)).ToLocalChecked());
+   Nan::Set(target, New<String>("demosaic").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(demosaic)).ToLocalChecked());
 }
 
 NODE_MODULE(addon, Init)

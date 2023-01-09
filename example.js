@@ -37,3 +37,8 @@ console.time("decode");
 binding.decode(out,size,rgbBuffer,isRGB);
 console.timeEnd("decode");
 console.log(rgbBuffer,rgb)
+const demBuffer = Buffer.alloc(width*height*(isRGB?3:1));
+console.time("demosaic");
+binding.demosaic(rgbBuffer,width*height*(isRGB?3:1),demBuffer,width,height);
+console.timeEnd("demosaic");
+console.log(demBuffer)
