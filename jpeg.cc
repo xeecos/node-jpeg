@@ -182,9 +182,10 @@ NAN_METHOD(demosaic)
     uint8_t* rgbBuffer = (uint8_t*) node::Buffer::Data(info[0]->ToObject(context).ToLocalChecked());
     unsigned int rgbBufferSize = info[1]->Uint32Value(context).ToChecked();
     uint8_t* outBuffer = (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
-    unsigned int width = info[3]->Uint32Value(context).ToChecked();
-    unsigned int height = info[4]->Uint32Value(context).ToChecked();
-    bilinear(width, height, 8, BIG_ENDING, RGGB, rgbBuffer, outBuffer);
+    Bayer bayer = (Bayer)info[3]->Uint32Value(context).ToChecked();
+    unsigned int width = info[4]->Uint32Value(context).ToChecked();
+    unsigned int height = info[5]->Uint32Value(context).ToChecked();
+    bilinear(width, height, 8, BIG_ENDING, bayer, rgbBuffer, outBuffer);
 }
 
 NAN_MODULE_INIT(Init) {  

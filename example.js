@@ -6,7 +6,7 @@ const rgb = [];
 const width = 1920;
 const height = 1080;
 const quality = 75;
-const isRGB = true;
+const isRGB = false;
 for(let i=0;i<width;i++)
 {
     for(let j=0;j<height;j++)
@@ -34,11 +34,18 @@ fs.closeSync(fd);
 console.log('binding.encode() =', out[0].toString(16),out[1].toString(16),out[2].toString(16),out[3].toString(16),out[4].toString(16),out[5].toString(16));
 const rgbBuffer = Buffer.alloc(width*height*(isRGB?3:1));
 console.time("decode");
-binding.decode(out,size,rgbBuffer,isRGB);
+binding.decode(fs.readFileSync("bayer.jpg"),size,rgbBuffer,isRGB);
 console.timeEnd("decode");
-console.log(rgbBuffer,rgb)
-const demBuffer = Buffer.alloc(width*height*(isRGB?3:1));
+console.log(rgbBuffer)
+
+const demBuffer = Buffer.alloc(width*height*3);
 console.time("demosaic");
-binding.demosaic(rgbBuffer,width*height*(isRGB?3:1),demBuffer,width,height);
+binding.demosaic(rgbBuffer,width*height,demBuffer,1,width,height);
 console.timeEnd("demosaic");
-console.log(demBuffer)
+
+console.time("encode");
+size = binding.encode(demBuffer, demBuffer.length, out, out.length, width, height, true, quality);
+console.timeEnd("encode");
+fd = fs.openSync("./tmp.jpg","w");
+fs.writeSync(fd,out,0,size);
+fs.closeSync(fd);

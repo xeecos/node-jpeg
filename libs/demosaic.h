@@ -153,9 +153,9 @@ int green(int i, int j, Bayer b, bayer_t o)
 
 int blue(int i, int j, Bayer b, bayer_t o){
     if (isRed(i, j, b))
-        return round((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) / 4);
-    if (isGreenR(i, j, b)) return round((pixel(i - 1, j, o) + pixel(i + 1, j, o)) / 2);
-    if (isGreenB(i, j, b)) return round((pixel(i, j - 1, o) + pixel(i, j + 1, o)) / 2);
+        return ((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) >>2);
+    if (isGreenR(i, j, b)) return ((pixel(i - 1, j, o) + pixel(i + 1, j, o)) >>1);
+    if (isGreenB(i, j, b)) return ((pixel(i, j - 1, o) + pixel(i, j + 1, o)) >>1);
     return pixel(i, j, o);
 };
 
@@ -173,6 +173,8 @@ void bilinear(int width, int height, int depth,int endianness,Bayer bayer, unsig
     options.depth = depth;
     options.endianness = endianness;
     options.bayer = bayer;
+    options.height = height;
+    options.width = width;
     for (int i = 0; i < h; i++) {
         int l = i * w * 3;
         for (int j = 0; j < w; j++) {
