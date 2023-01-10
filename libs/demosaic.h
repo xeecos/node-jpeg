@@ -25,15 +25,15 @@ struct bayer_t
 
 // Dereference all these functions up front.  Speeds up benchmarks significantly.
 
-unsigned int reflect(unsigned int x, unsigned int p1, unsigned int p2) 
+unsigned int reflect( int x,  int p1,  int p2) 
 {
     unsigned int r;
     if (x >= p1 && x <= p2) {
         r = x;
     } else if (x < p1) {
-        r = p1 + (p1 > x?p1-x:(x-p1));
+        r = p1 + (p1 > x ? p1-x : (x-p1));
     } else {
-        r = p2 - (p2 > x?p2-x:(x-p2));
+        r = p2 - (p2 > x ? p2-x : (x-p2));
     }
     return r;
 };
@@ -135,10 +135,10 @@ bool isBlue(int i, int j, Bayer bayer)
 
 int red(int i, int j, Bayer b, bayer_t o)
 {
-    if (isGreenR(i, j, b)) return round((pixel(i, j - 1, o) + pixel(i, j + 1, o)) / 2);
-    if (isGreenB(i, j, b)) return round((pixel(i - 1, j, o) + pixel(i + 1, j, o)) / 2);
+    if (isGreenR(i, j, b)) return ((pixel(i, j - 1, o) + pixel(i, j + 1, o)) >>1);
+    if (isGreenB(i, j, b)) return ((pixel(i - 1, j, o) + pixel(i + 1, j, o)) >>1);
     if (isBlue(i, j, b))
-        return round((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) / 4);
+        return ((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) >>2);
     return pixel(i, j, o);
 };
 
@@ -152,8 +152,7 @@ int green(int i, int j, Bayer b, bayer_t o)
 };
 
 int blue(int i, int j, Bayer b, bayer_t o){
-    if (isRed(i, j, b))
-        return ((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) >>2);
+    if (isRed(i, j, b)) return ((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) >>2);
     if (isGreenR(i, j, b)) return ((pixel(i - 1, j, o) + pixel(i + 1, j, o)) >>1);
     if (isGreenB(i, j, b)) return ((pixel(i, j - 1, o) + pixel(i, j + 1, o)) >>1);
     return pixel(i, j, o);
