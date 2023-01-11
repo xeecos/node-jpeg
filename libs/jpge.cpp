@@ -10,11 +10,6 @@
 
 #include "jpge.h"
 
-#include <stdint.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <malloc.h>
 
@@ -32,13 +27,13 @@ namespace jpge {
     enum { M_SOF0 = 0xC0, M_DHT = 0xC4, M_SOI = 0xD8, M_EOI = 0xD9, M_SOS = 0xDA, M_DQT = 0xDB, M_APP0 = 0xE0 };
     enum { DC_LUM_CODES = 12, AC_LUM_CODES = 256, DC_CHROMA_CODES = 12, AC_CHROMA_CODES = 256, MAX_HUFF_SYMBOLS = 257, MAX_HUFF_CODESIZE = 32 };
 
-    static const uint8 s_zag[64] = { 0,1,8,16,9,2,3,10,17,24,32,25,18,11,4,5,12,19,26,33,40,48,41,34,27,20,13,6,7,14,21,28,35,42,49,56,57,50,43,36,29,22,15,23,30,37,44,51,58,59,52,45,38,31,39,46,53,60,61,54,47,55,62,63 };
+    static const unsigned char s_zag[64] = { 0,1,8,16,9,2,3,10,17,24,32,25,18,11,4,5,12,19,26,33,40,48,41,34,27,20,13,6,7,14,21,28,35,42,49,56,57,50,43,36,29,22,15,23,30,37,44,51,58,59,52,45,38,31,39,46,53,60,61,54,47,55,62,63 };
     static const int16 s_std_lum_quant[64] = { 16,11,12,14,12,10,16,14,13,14,18,17,16,19,24,40,26,24,22,22,24,49,35,37,29,40,58,51,61,60,57,51,56,55,64,72,92,78,64,68,87,69,55,56,80,109,81,87,95,98,103,104,103,62,77,113,121,112,100,120,92,101,103,99 };
     static const int16 s_std_croma_quant[64] = { 17,18,18,24,21,24,47,26,26,47,99,66,56,66,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99 };
-    static const uint8 s_dc_lum_bits[17] = { 0,0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0 };
-    static const uint8 s_dc_lum_val[DC_LUM_CODES] = { 0,1,2,3,4,5,6,7,8,9,10,11 };
-    static const uint8 s_ac_lum_bits[17] = { 0,0,2,1,3,3,2,4,3,5,5,4,4,0,0,1,0x7d };
-    static const uint8 s_ac_lum_val[AC_LUM_CODES]  = {
+    static const unsigned char s_dc_lum_bits[17] = { 0,0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0 };
+    static const unsigned char s_dc_lum_val[DC_LUM_CODES] = { 0,1,2,3,4,5,6,7,8,9,10,11 };
+    static const unsigned char s_ac_lum_bits[17] = { 0,0,2,1,3,3,2,4,3,5,5,4,4,0,0,1,0x7d };
+    static const unsigned char s_ac_lum_val[AC_LUM_CODES]  = {
         0x01,0x02,0x03,0x00,0x04,0x11,0x05,0x12,0x21,0x31,0x41,0x06,0x13,0x51,0x61,0x07,0x22,0x71,0x14,0x32,0x81,0x91,0xa1,0x08,0x23,0x42,0xb1,0xc1,0x15,0x52,0xd1,0xf0,
         0x24,0x33,0x62,0x72,0x82,0x09,0x0a,0x16,0x17,0x18,0x19,0x1a,0x25,0x26,0x27,0x28,0x29,0x2a,0x34,0x35,0x36,0x37,0x38,0x39,0x3a,0x43,0x44,0x45,0x46,0x47,0x48,0x49,
         0x4a,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5a,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6a,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x83,0x84,0x85,0x86,0x87,0x88,0x89,
@@ -46,10 +41,10 @@ namespace jpge {
         0xc6,0xc7,0xc8,0xc9,0xca,0xd2,0xd3,0xd4,0xd5,0xd6,0xd7,0xd8,0xd9,0xda,0xe1,0xe2,0xe3,0xe4,0xe5,0xe6,0xe7,0xe8,0xe9,0xea,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,
         0xf9,0xfa
     };
-    static const uint8 s_dc_chroma_bits[17] = { 0,0,3,1,1,1,1,1,1,1,1,1,0,0,0,0,0 };
-    static const uint8 s_dc_chroma_val[DC_CHROMA_CODES]  = { 0,1,2,3,4,5,6,7,8,9,10,11 };
-    static const uint8 s_ac_chroma_bits[17] = { 0,0,2,1,2,4,4,3,4,7,5,4,4,0,1,2,0x77 };
-    static const uint8 s_ac_chroma_val[AC_CHROMA_CODES] = {
+    static const unsigned char s_dc_chroma_bits[17] = { 0,0,3,1,1,1,1,1,1,1,1,1,0,0,0,0,0 };
+    static const unsigned char s_dc_chroma_val[DC_CHROMA_CODES]  = { 0,1,2,3,4,5,6,7,8,9,10,11 };
+    static const unsigned char s_ac_chroma_bits[17] = { 0,0,2,1,2,4,4,3,4,7,5,4,4,0,1,2,0x77 };
+    static const unsigned char s_ac_chroma_val[AC_CHROMA_CODES] = {
         0x00,0x01,0x02,0x03,0x11,0x04,0x05,0x21,0x31,0x06,0x12,0x41,0x51,0x07,0x61,0x71,0x13,0x22,0x32,0x81,0x08,0x14,0x42,0x91,0xa1,0xb1,0xc1,0x09,0x23,0x33,0x52,0xf0,
         0x15,0x62,0x72,0xd1,0x0a,0x16,0x24,0x34,0xe1,0x25,0xf1,0x17,0x18,0x19,0x1a,0x26,0x27,0x28,0x29,0x2a,0x35,0x36,0x37,0x38,0x39,0x3a,0x43,0x44,0x45,0x46,0x47,0x48,
         0x49,0x4a,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5a,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6a,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x82,0x83,0x84,0x85,0x86,0x87,
@@ -65,11 +60,11 @@ namespace jpge {
 
     static bool m_huff_initialized = false;
     static uint m_huff_codes[4][256];
-    static uint8 m_huff_code_sizes[4][256];
-    static uint8 m_huff_bits[4][17];
-    static uint8 m_huff_val[4][256];
+    static unsigned char m_huff_code_sizes[4][256];
+    static unsigned char m_huff_bits[4][17];
+    static unsigned char m_huff_val[4][256];
 
-    static inline uint8 clamp(int i) {
+    static inline unsigned char clamp(int i) {
         if (i < 0) {
             i = 0;
         } else if (i > 255){
@@ -78,7 +73,7 @@ namespace jpge {
         return static_cast<uint8>(i);
     }
 
-    static void RGB_to_YCC(uint8* pDst, const uint8 *pSrc, int num_pixels) {
+    static void RGB_to_YCC(unsigned char* pDst, const unsigned char *pSrc, int num_pixels) {
         for ( ; num_pixels; pDst += 3, pSrc += 3, num_pixels--) {
             const int r = pSrc[0], g = pSrc[1], b = pSrc[2];
             pDst[0] = static_cast<uint8>((r * YR + g * YG + b * YB + 32768) >> 16);
@@ -87,13 +82,13 @@ namespace jpge {
         }
     }
 
-    static void RGB_to_Y(uint8* pDst, const uint8 *pSrc, int num_pixels) {
+    static void RGB_to_Y(unsigned char* pDst, const unsigned char *pSrc, int num_pixels) {
         for ( ; num_pixels; pDst++, pSrc += 3, num_pixels--) {
             pDst[0] = static_cast<uint8>((pSrc[0] * YR + pSrc[1] * YG + pSrc[2] * YB + 32768) >> 16);
         }
     }
 
-    static void Y_to_YCC(uint8* pDst, const uint8* pSrc, int num_pixels) {
+    static void Y_to_YCC(unsigned char* pDst, const unsigned char* pSrc, int num_pixels) {
         for( ; num_pixels; pDst += 3, pSrc++, num_pixels--) {
             pDst[0] = pSrc[0];
             pDst[1] = 128;
@@ -138,10 +133,10 @@ namespace jpge {
     }
 
     // Compute the actual canonical Huffman codes/code sizes given the JPEG huff bits and val arrays.
-    static void compute_huffman_table(uint *codes, uint8 *code_sizes, uint8 *bits, uint8 *val)
+    static void compute_huffman_table(uint *codes, unsigned char *code_sizes, unsigned char *bits, unsigned char *val)
     {
         int i, l, last_p, si;
-        static uint8 huff_size[257];
+        static unsigned char huff_size[257];
         static uint huff_code[257];
         uint code;
 
@@ -182,7 +177,7 @@ namespace jpge {
         m_out_buf_left = JPGE_OUT_BUF_SIZE;
     }
 
-    void jpeg_encoder::emit_byte(uint8 i)
+    void jpeg_encoder::emit_byte(unsigned char i)
     {
         *m_pOut_buf++ = i;
         if (--m_out_buf_left == 0) {
@@ -192,7 +187,7 @@ namespace jpge {
 
     void jpeg_encoder::put_bits(uint bits, uint len)
     {
-        uint8 c = 0;
+        unsigned char c = 0;
         m_bit_buffer |= ((uint32)bits << (24 - (m_bits_in += len)));
         while (m_bits_in >= 8) {
             c = (uint8)((m_bit_buffer >> 16) & 0xFF);
@@ -207,13 +202,13 @@ namespace jpge {
 
     void jpeg_encoder::emit_word(uint i)
     {
-        emit_byte(uint8(i >> 8)); emit_byte(uint8(i & 0xFF));
+        emit_byte((unsigned char)(i >> 8)); emit_byte((unsigned char)(i & 0xFF));
     }
 
     // JPEG marker generation.
     void jpeg_encoder::emit_marker(int marker)
     {
-        emit_byte(uint8(0xFF)); emit_byte(uint8(marker));
+        emit_byte((unsigned char)(0xFF)); emit_byte((unsigned char)(marker));
     }
 
     // Emit JFIF marker
@@ -263,7 +258,7 @@ namespace jpge {
     }
 
     // Emit Huffman table.
-    void jpeg_encoder::emit_dht(uint8 *bits, uint8 *val, int index, bool ac_flag)
+    void jpeg_encoder::emit_dht(unsigned char *bits, unsigned char *val, int index, bool ac_flag)
     {
         emit_marker(M_DHT);
 
@@ -313,7 +308,7 @@ namespace jpge {
 
     void jpeg_encoder::load_block_8_8_grey(int x)
     {
-        uint8 *pSrc;
+        unsigned char *pSrc;
         sample_array_t *pDst = m_sample_array;
         x <<= 3;
         for (int i = 0; i < 8; i++, pDst += 8)
@@ -326,7 +321,7 @@ namespace jpge {
 
     void jpeg_encoder::load_block_8_8(int x, int y, int c)
     {
-        uint8 *pSrc;
+        unsigned char *pSrc;
         sample_array_t *pDst = m_sample_array;
         x = (x * (8 * 3)) + c;
         y <<= 3;
@@ -340,7 +335,7 @@ namespace jpge {
 
     void jpeg_encoder::load_block_16_8(int x, int c)
     {
-        uint8 *pSrc1, *pSrc2;
+        unsigned char *pSrc1, *pSrc2;
         sample_array_t *pDst = m_sample_array;
         x = (x * (16 * 3)) + c;
         int a = 0, b = 2;
@@ -358,7 +353,7 @@ namespace jpge {
 
     void jpeg_encoder::load_block_16_8_8(int x, int c)
     {
-        uint8 *pSrc1;
+        unsigned char *pSrc1;
         sample_array_t *pDst = m_sample_array;
         x = (x * (16 * 3)) + c;
         for (int i = 0; i < 8; i++, pDst += 8)
@@ -401,7 +396,7 @@ namespace jpge {
         int i, j, run_len, nbits, temp1, temp2;
         int16 *pSrc = m_coefficient_array;
         uint *codes[2];
-        uint8 *code_sizes[2];
+        unsigned char *code_sizes[2];
 
         if (component_num == 0)
         {
@@ -504,9 +499,9 @@ namespace jpge {
 
     void jpeg_encoder::load_mcu(const void *pSrc)
     {
-        const uint8* Psrc = reinterpret_cast<const uint8*>(pSrc);
+        const unsigned char* Psrc = reinterpret_cast<const unsigned char*>(pSrc);
 
-        uint8* pDst = m_mcu_lines[m_mcu_y_ofs]; // OK to write up to m_image_bpl_xlt bytes to pDst
+        unsigned char* pDst = m_mcu_lines[m_mcu_y_ofs]; // OK to write up to m_image_bpl_xlt bytes to pDst
 
         if (m_num_components == 1) {
             if (m_image_bpp == 3)
@@ -525,8 +520,8 @@ namespace jpge {
             memset(m_mcu_lines[m_mcu_y_ofs] + m_image_bpl_xlt, pDst[m_image_bpl_xlt - 1], m_image_x_mcu - m_image_x);
         else
         {
-            const uint8 y = pDst[m_image_bpl_xlt - 3 + 0], cb = pDst[m_image_bpl_xlt - 3 + 1], cr = pDst[m_image_bpl_xlt - 3 + 2];
-            uint8 *q = m_mcu_lines[m_mcu_y_ofs] + m_image_bpl_xlt;
+            const unsigned char y = pDst[m_image_bpl_xlt - 3 + 0], cb = pDst[m_image_bpl_xlt - 3 + 1], cr = pDst[m_image_bpl_xlt - 3 + 2];
+            unsigned char *q = m_mcu_lines[m_mcu_y_ofs] + m_image_bpl_xlt;
             for (int i = m_image_x; i < m_image_x_mcu; i++)
             {
                 *q++ = y; *q++ = cb; *q++ = cr;
@@ -602,7 +597,7 @@ namespace jpge {
         m_image_bpl_mcu  = m_image_x_mcu * m_num_components;
         m_mcus_per_row   = m_image_x_mcu / m_mcu_x;
 
-        if ((m_mcu_lines[0] = static_cast<uint8*>(jpge_malloc(m_image_bpl_mcu * m_mcu_y))) == NULL) {
+        if ((m_mcu_lines[0] = static_cast<unsigned char*>(jpge_malloc(m_image_bpl_mcu * m_mcu_y))) == NULL) {
             return false;
         }
         for (int i = 1; i < m_mcu_y; i++)

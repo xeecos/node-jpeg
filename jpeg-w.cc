@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdint.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 #include "libs/demosaic.h"
@@ -31,7 +29,6 @@ typedef enum
     PIXFORMAT_RAW,       // RAW
 } pixformat_t;
 /* Bytes per pixel of image output */
-#define N_BPP (3 - JD_FORMAT)
 
 /* Session identifier for input/output functions (name, members and usage are as user defined) */
 

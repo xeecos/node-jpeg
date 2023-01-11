@@ -1,5 +1,4 @@
 #pragma once
-#include "math.h"
 typedef enum Bayer
 {
     RGGB = 0,
@@ -45,7 +44,7 @@ unsigned int reflect(int x, int p1, int p2)
     return r;
 };
 
-int read(int i, bayer_t o)
+int read(int i, struct bayer_t o)
 {
     switch (o.depth)
     {
@@ -63,7 +62,7 @@ int read(int i, bayer_t o)
     }
 };
 
-void write(int x, int i, bayer_t o)
+void write(int x, int i, struct bayer_t o)
 {
     switch (o.depth)
     {
@@ -85,14 +84,14 @@ void write(int x, int i, bayer_t o)
     }
 };
 
-int pixel(int i, int j, bayer_t o)
+int pixel(int i, int j, struct bayer_t o)
 {
     unsigned int x = reflect(i, 0, o.height - 1);
     unsigned int y = reflect(j, 0, o.width - 1);
     return read(x * o.width + y, o);
 };
 
-bool isRed(int i, int j, Bayer bayer)
+int isRed(int i, int j, Bayer bayer)
 {
     switch (bayer)
     {
@@ -107,7 +106,7 @@ bool isRed(int i, int j, Bayer bayer)
     }
 };
 
-bool isGreenR(int i, int j, Bayer bayer)
+int isGreenR(int i, int j, Bayer bayer)
 {
     switch (bayer)
     {
@@ -122,7 +121,7 @@ bool isGreenR(int i, int j, Bayer bayer)
     }
 };
 
-bool isGreenB(int i, int j, Bayer bayer)
+int isGreenB(int i, int j, Bayer bayer)
 {
     switch (bayer)
     {
@@ -137,7 +136,7 @@ bool isGreenB(int i, int j, Bayer bayer)
     }
 };
 
-bool isBlue(int i, int j, Bayer bayer)
+int isBlue(int i, int j, Bayer bayer)
 {
     switch (bayer)
     {
@@ -152,7 +151,7 @@ bool isBlue(int i, int j, Bayer bayer)
     }
 };
 
-int red(int i, int j, Bayer b, bayer_t o)
+int red(int i, int j, Bayer b, struct bayer_t o)
 {
     if (isGreenR(i, j, b))
         return ((pixel(i, j - 1, o) + pixel(i, j + 1, o)) >> 1);
@@ -163,7 +162,7 @@ int red(int i, int j, Bayer b, bayer_t o)
     return pixel(i, j, o);
 };
 
-int green(int i, int j, Bayer b, bayer_t o)
+int green(int i, int j, Bayer b, struct bayer_t o)
 {
     if (isRed(i, j, b) || isBlue(i, j, b))
     {
@@ -172,7 +171,7 @@ int green(int i, int j, Bayer b, bayer_t o)
     return pixel(i, j, o);
 };
 
-int blue(int i, int j, Bayer b, bayer_t o)
+int blue(int i, int j, Bayer b, struct bayer_t o)
 {
     if (isRed(i, j, b))
         return ((pixel(i - 1, j - 1, o) + pixel(i - 1, j + 1, o) + pixel(i + 1, j - 1, o) + pixel(i + 1, j + 1, o)) >> 2);
@@ -185,7 +184,7 @@ int blue(int i, int j, Bayer b, bayer_t o)
 
 void bilinear(int width, int height, int depth, int endianness, Bayer bayer, unsigned char *data, unsigned char *result)
 {
-    bayer_t options;
+    struct bayer_t options;
 
     int h = height;
     int w = width;

@@ -14,7 +14,6 @@ typedef enum
     PIXFORMAT_RAW,       // RAW
 } pixformat_t;
 /* Bytes per pixel of image output */
-#define N_BPP (3 - JD_FORMAT)
 
 uint8_t* outBuffer;
 uint8_t* jpegBuffer;
