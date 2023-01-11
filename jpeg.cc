@@ -131,13 +131,7 @@ public:
         return index;
     }
 };
-/**
- * toojpeg
-*/
-void myOutput(unsigned char oneByte) { 
-    outBuffer[idx] = oneByte;
-    idx++;
-}
+
 NAN_METHOD(encode) {  
     
     v8::Isolate *isolate = Isolate::GetCurrent();
