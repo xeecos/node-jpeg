@@ -1,8 +1,8 @@
 {
   "targets": [
     {
-        "target_name": "jpeg",
-        "sources": [ "jpeg.cc","libs/jpge.cpp"],
+        "target_name": "demo",
+        "sources": [ "demo.cc"],
         "include_dirs" : [
             "<!(node -e \"require('nan')\")"
         ]

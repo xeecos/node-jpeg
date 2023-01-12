@@ -1,2 +1,0 @@
-E:\Projects\emsdk\upstream\emscripten\emcc.bat .\jpeg-w.cc .\libs\jpge.cpp --bind -s WASM=1 -O3 -o .\jpeg-w.js -sALLOW_MEMORY_GROWTH -sASSERTIONS
-E:\Projects\emsdk\upstream\emscripten\emcc.bat .\demo.cc .\libs\jpge.cpp -s WASM=1 -O3 -o .\demo.js -sASSERTIONS -s"EXPORTED_FUNCTIONS=['_demosaic','_encode_jpg','_decode_jpg','_js_malloc','_js_free','_js_write','_js_read','_js_read_int']" -sALLOW_MEMORY_GROWTH

@@ -1,51 +1,21 @@
-
-const binding = require('./build/Release/jpeg');
-const fs = require("fs");
-console.log(fs.readFileSync("test.jpeg"))
-const rgb = [];
-const width = 1920;
-const height = 1080;
-const quality = 75;
-const isRGB = false;
-for(let i=0;i<width;i++)
+const binding = require('./build/Release/demo.node');
+/*
+    初始化数据
+*/
+const inBuf = Buffer.alloc(4);
+const outBuf = Buffer.alloc(4);
+for(let i=0;i<4;i++)
 {
-    for(let j=0;j<height;j++)
-    {
-        rgb.push(j%0xff);
-        if(isRGB)
-        {
-            // rgb.push(Math.floor(Math.random()*0x20));
-            rgb.push(i%0xff);
-            rgb.push(j%0xff);
-        }
-        // rgb.push(Math.floor(0xff*Math.random()));
-        // rgb.push(Math.floor(0xff*Math.random()));
-    }
-}
-const buffer = Buffer.from(rgb);    //Input RGB Data
-const out = Buffer.alloc(4*1024*1024); //Max File Size = 4MB
-console.time("encode");
-console.log("start");
-let size = binding.encode(buffer, buffer.length, out, out.length, width, height, isRGB, quality);
-console.timeEnd("encode");
-let fd = fs.openSync("./tmp.jpg","w");
-fs.writeSync(fd,out,0,size);
-fs.closeSync(fd);
-console.log('binding.encode() =', out[0].toString(16),out[1].toString(16),out[2].toString(16),out[3].toString(16),out[4].toString(16),out[5].toString(16));
-const rgbBuffer = Buffer.alloc(width*height*(isRGB?3:1));
-console.time("decode");
-binding.decode(fs.readFileSync("bayer.jpg"),size,rgbBuffer,isRGB);
-console.timeEnd("decode");
-console.log(rgbBuffer)
+    inBuf[i] = i;
+} 
+// 处理数据
+let result = binding.process_data(inBuf, inBuf.length, outBuf);
 
-const demBuffer = Buffer.alloc(width*height*3);
-console.time("demosaic");
-binding.demosaic(rgbBuffer,width*height,demBuffer,1,width,height);
-console.timeEnd("demosaic");
-
-console.time("encode");
-size = binding.encode(demBuffer, demBuffer.length, out, out.length, width, height, true, quality);
-console.timeEnd("encode");
-fd = fs.openSync("./tmp.jpg","w");
-fs.writeSync(fd,out,0,size);
-fs.closeSync(fd);
+/*
+    打印数据
+*/
+for(let i=0;i<4;i++)
+{
+    console.log(outBuf[i]);
+} 
+console.log("result:", result);
