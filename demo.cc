@@ -1,24 +1,25 @@
-#include <nan.h>
-using namespace Nan;  
-using namespace v8;
-NAN_METHOD(process_data)
+#include <emscripten/bind.h>
+#include <emscripten/val.h>
+using namespace emscripten;
+val process_data(int in_ptr, int in_count, int out_ptr)
 {
-    v8::Isolate *isolate = Isolate::GetCurrent();
-    v8::Local<v8::Context> context = v8::Context::New(isolate);
-    uint8_t* in_buf = (uint8_t*) node::Buffer::Data(info[0]->ToObject(context).ToLocalChecked());
-    unsigned int in_count= info[1]->Uint32Value(context).ToChecked();
-    uint8_t* out_buf= (uint8_t*) node::Buffer::Data(info[2]->ToObject(context).ToLocalChecked());
+    // 指针转换
+    unsigned char* in_buf = (unsigned char *) in_ptr;
+    unsigned char * out_buf = (unsigned char *) out_ptr;
+    
     // 处理数据
     for(int i=0;i<in_count;i++)
     {
         out_buf[i] = in_buf[i] + 30;
     }
-    // 返回结果
-    info.GetReturnValue().Set(0);
+    /*
+        emscripten::val 返回js对象
+    */
+    val ret = val::object();
+    ret.set("result", 0);
+    return ret;
 }
-
-NAN_MODULE_INIT(Init) {  
-   Nan::Set(target, New<String>("process_data").ToLocalChecked(),  GetFunction(New<FunctionTemplate>(process_data)).ToLocalChecked());
+EMSCRIPTEN_BINDINGS(image)
+{
+  function("process_data", &process_data);
 }
-
-NODE_MODULE(addon, Init)
