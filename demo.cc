@@ -1,5 +1,4 @@
 #include <malloc.h>
-#include <string.h>
 
 #include "libs/demosaic.h"
 #include "libs/jpge.h"
