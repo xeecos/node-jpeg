@@ -46,7 +46,7 @@ namespace jpge
     class output_stream {
         public:
             virtual ~output_stream() { };
-            virtual bool put_buf(const void* Pbuf, int len) = 0;
+            virtual bool put_buf(unsigned char* Pbuf, int len) = 0;
             virtual unsigned int get_size() const = 0;
     };
     

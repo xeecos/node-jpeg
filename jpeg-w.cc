@@ -115,7 +115,7 @@ public:
 
     virtual ~memory_stream() {}
 
-    virtual bool put_buf(const void *pBuf, int len)
+    virtual bool put_buf(unsigned char *pBuf, int len)
     {
         if (!pBuf)
         {
@@ -129,7 +129,10 @@ public:
         }
         if (len)
         {
-            memcpy(out_buf + index, pBuf, len);
+            for(int i=0;i<len;i++)
+            {
+                out_buf[index+i] = pBuf[i];
+            }
             index += len;
         }
         return true;

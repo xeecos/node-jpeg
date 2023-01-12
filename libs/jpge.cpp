@@ -507,7 +507,12 @@ namespace jpge {
             if (m_image_bpp == 3)
                 RGB_to_Y(pDst, Psrc, m_image_x);
             else
-                memcpy(pDst, Psrc, m_image_x);
+            {
+                for(int i=0;i<m_image_x;i++)
+                {
+                    pDst[i] = Psrc[i];
+                }
+            }
         } else {
             if (m_image_bpp == 3)
                 RGB_to_YCC(pDst, Psrc, m_image_x);
@@ -611,11 +616,38 @@ namespace jpge {
 
         if(!m_huff_initialized){
             m_huff_initialized = true;
-
-            memcpy(m_huff_bits[0+0], s_dc_lum_bits, 17);    memcpy(m_huff_val[0+0], s_dc_lum_val, DC_LUM_CODES);
-            memcpy(m_huff_bits[2+0], s_ac_lum_bits, 17);    memcpy(m_huff_val[2+0], s_ac_lum_val, AC_LUM_CODES);
-            memcpy(m_huff_bits[0+1], s_dc_chroma_bits, 17); memcpy(m_huff_val[0+1], s_dc_chroma_val, DC_CHROMA_CODES);
-            memcpy(m_huff_bits[2+1], s_ac_chroma_bits, 17); memcpy(m_huff_val[2+1], s_ac_chroma_val, AC_CHROMA_CODES);
+            for(int i=0;i<17;i++)
+            {
+                m_huff_bits[0+0][i] = s_dc_lum_bits[i];
+            }
+            for(int i=0;i<DC_LUM_CODES;i++)
+            {
+                m_huff_val[0+0][i] = s_dc_lum_val[i];
+            }
+            for(int i=0;i<17;i++)
+            {
+                m_huff_bits[0+2][i] = s_ac_lum_bits[i];
+            }
+            for(int i=0;i<AC_LUM_CODES;i++)
+            {
+                m_huff_val[2+0][i] = s_ac_lum_val[i];
+            }
+            for(int i=0;i<17;i++)
+            {
+                m_huff_bits[0+1][i] = s_dc_chroma_bits[i];
+            }
+            for(int i=0;i<DC_CHROMA_CODES;i++)
+            {
+                m_huff_val[0+1][i] = s_dc_chroma_val[i];
+            }
+            for(int i=0;i<17;i++)
+            {
+                m_huff_bits[2+1][i] = s_ac_chroma_bits[i];
+            }
+            for(int i=0;i<AC_CHROMA_CODES;i++)
+            {
+                m_huff_val[2+1][i] = s_ac_chroma_val[i];
+            }
 
             compute_huffman_table(&m_huff_codes[0+0][0], &m_huff_code_sizes[0+0][0], m_huff_bits[0+0], m_huff_val[0+0]);
             compute_huffman_table(&m_huff_codes[2+0][0], &m_huff_code_sizes[2+0][0], m_huff_bits[2+0], m_huff_val[2+0]);
@@ -647,7 +679,10 @@ namespace jpge {
         if (m_mcu_y_ofs) {
             if (m_mcu_y_ofs < 16) { // check here just to shut up static analysis
                 for (int i = m_mcu_y_ofs; i < m_mcu_y; i++) {
-                    memcpy(m_mcu_lines[i], m_mcu_lines[m_mcu_y_ofs - 1], m_image_bpl_mcu);
+                    for(int j=0;j<m_image_bpl_mcu;j++)
+                    {
+                        m_mcu_lines[i][j] = m_mcu_lines[m_mcu_y_ofs - 1][j];
+                    }
                 }
             }
             process_mcu_row();
